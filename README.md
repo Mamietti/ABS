@@ -1,2 +1,2 @@
 # ABS
-Non-intrusive access control from attribute based signatures
+Non-intrusive access control from attribute based signatures.
