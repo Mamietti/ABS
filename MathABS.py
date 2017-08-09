@@ -204,7 +204,6 @@ class ABS:
                 recursivefill(node.getRight(),emptemp)
         recursivefill(tree,[1])
 
-        print(matrix)
         for i in matrix:
             while(len(i)<counter[0]):
                 i.append(0)
@@ -247,9 +246,9 @@ if __name__ == "__main__":
     absinst = ABS(group)
     tpk = absinst.trusteesetup(attributes)
     ask,apk = absinst.authoritysetup(tpk)
-    ska = absinst.generateattributes(ask,['SKILLFUL','ECCENTRIC'])
-    lam = absinst.sign((tpk,apk), ska, 'rar', 'SKILLFUL AND (ECCENTRIC OR (LAZY AND VIOLENT))')
-    print(absinst.verify((tpk,apk),lam,'rar','SKILLFUL AND (ECCENTRIC OR (LAZY AND VIOLENT))'))
-    ska2 = absinst.generateattributes(ask,['SKILLFUL','ECCENTRIC','LAZY','VIOLENT'])
-    lam2 = absinst.sign((tpk,apk), ska2, 'rar', 'SKILLFUL AND (ECCENTRIC OR (LAZY AND VIOLENT))')
-    print(absinst.verify((tpk,apk),lam2,'rar','SKILLFUL AND (ECCENTRIC OR (LAZY AND VIOLENT))'))
+    ska = absinst.generateattributes(ask,['SKILLFUL'])
+    lam = absinst.sign((tpk,apk), ska, 'rar', 'SKILLFUL OR ECCENTRIC')
+    print(absinst.verify((tpk,apk),lam,'rar','SKILLFUL OR ECCENTRIC'))
+    ska2 = absinst.generateattributes(ask,['SKILLFUL','ECCENTRIC'])
+    lam2 = absinst.sign((tpk,apk), ska2, 'rar', 'SKILLFUL OR ECCENTRIC')
+    print(absinst.verify((tpk,apk),lam2,'rar','SKILLFUL OR ECCENTRIC'))
