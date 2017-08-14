@@ -5,34 +5,59 @@ from multiprocessing import Process, Manager
 from MathABS import ABS
 from charm.toolbox.pairinggroup import PairingGroup
 import socketserver
+import socket
 import json
 from charm.toolbox.securerandom import OpenSSLRand
 
 def print_and_accept(pkt):
     a = IP(pkt.get_payload())
-    #print(a[IP][TCP].sport,a[IP][TCP].dport)
+    a.show()
     if a[IP][TCP].dport == 80:
-        if a[IP].src not in iplist:
-            if checkprotocol():
-                iplist.append(a[IP].src)
-                print('FIREWALL: List changed to ',iplist)
+        source,dest = a[IP].src, a[IP].dst
+        host = 0
+        port = 0
+        print(clientlist)
+        try:
+            port = clientlist[source]
+            host = source
+        except Exception:
+            try:
+                port = clientlist[dest]
+                host = dest
+            except Exception:
                 pkt.accept()
             else:
-                pkt.drop()
-        elif a[IP].dst not in iplist:
-            if checkprotocol():
-                iplist.append(a[IP].dst)
-                print('FIREWALL: List changed to ',iplist)
-                pkt.accept()
-            else:
-                pkt.drop()
+                if checkprotocol(host,port):
+                    iplist.append(a[IP].src)
+                    print('FIREWALL: whitelist changed to ',iplist)
+                    pkt.accept()
+                else:
+                    pkt.drop()
         else:
-            pkt.accept()
+            if checkprotocol(host,port):
+                iplist.append(a[IP].src)
+                print('FIREWALL: whitelist changed to ',iplist)
+                pkt.accept()
+            else:
+                pkt.drop()
     else:
         pkt.accept()
 
-def checkprotocol():
-    return True
+def checkprotocol(host,port):
+    sock.connect((host,port))
+    print('FIREWALL: Connected to client {}:{}'.format(host,port))
+    nonce = str(OpenSSLRand().getRandomBytes(20))[2:].replace("\\x","")
+    stuple = (nonce,accesspolicy)
+    sock.sendall(bytes(json.dumps(stuple),'utf8'))
+    print('FIREWALL: Sent nonce {} and policy {}'.format(nonce,accesspolicy))
+
+    data = sock.recv(hugeness).strip()
+    msg = data.decode('utf-8')
+    signature = absinst.decodestr(msg)
+    judgement = absinst.verify((tpk,apk),signature,nonce,accesspolicy)
+    print('FIREWALL: Received and decoded signature as',judgement)
+
+    return absinst.verify((tpk,apk),signature,nonce,accesspolicy)
 
 def FWsubprocess():
     try:
@@ -47,46 +72,18 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
         try:
             self.data = self.request.recv(hugeness).strip()
             msg = self.data.decode('utf-8')
-            print('SERVER: RECEIVED TESTCASE ATTRIBUTES',msg)
+            host,port = self.client_address[0],self.client_address[1]
+            print('SERVER: received from {}:{} attributes'.format(host,port),msg)
 
             ska = absinst.generateattributes(ask,msg.split(","))
             striple = (absinst.encodestr(tpk),absinst.encodestr(apk),absinst.encodestr(ska))
             self.request.sendall(bytes(json.dumps(striple),'utf8'))
-            print('SERVER: TESTCASE SKA GENERATED AND SENT, READY TO RECEIVE!')
-
-            self.data = self.request.recv(hugeness).strip()
-            msg = self.data.decode('utf-8')
-            site = msg.split(':')[1]
-            print('{}:{} wants to connect to {}'.format(self.client_address[0],self.client_address[1],site))
-
-            policy = accesspolicies[site]
-            nonce = str(OpenSSLRand().getRandomBytes(20))[2:].replace("\\x","")
-            stuple = (nonce,policy)
-            self.request.sendall(bytes(json.dumps(stuple),'utf8'))
-            print('SERVER: Sent nonce {} and policy {}'.format(nonce,policy))
-
-            self.data = self.request.recv(hugeness).strip()
-            msg = self.data.decode('utf-8')
-            signature = absinst.decodestr(msg)
-            print('SERVER: Received and decoded signature')
-
-            judgement = 'DENIED'
-            if absinst.verify((tpk,apk),signature,nonce,policy):
-                judgement = 'OK'
-            self.request.sendall(bytes(judgement,'utf-8'))
-            print('SERVER: Sent judgement', judgement, '\n')
+            clientlist[host] = port
+            print('SERVER: keys sent, client {}:{} added to list'.format(host,port))
         except Exception as err:
-            print(err)
-            print('SERVER: MISERABLE FAILURE')
+            print('SERVER: MISERABLE FAILURE:',err)
 
 try:
-    valuemanager = Manager()
-    iplist = valuemanager.list()
-    #os.system("sudo iptables -A OUTPUT -p tcp -j NFQUEUE")
-    fwp = Process(target = FWsubprocess)
-    fwp.start()
-    print('FIREWALL: READY')
-
     attributes = [
         'MOTIVATED',
         'SKILLFUL',
@@ -95,6 +92,15 @@ try:
         'VIOLENT'
     ]
     print('SERVER: ATTRIBUTE TABLE: ',attributes)
+    accesspolicy = '(SKILLFUL AND MOTIVATED) OR ECCENTRIC'
+
+    valuemanager = Manager()
+    iplist = valuemanager.list()
+    clientlist = valuemanager.dict()
+    #os.system("sudo iptables -A OUTPUT -p tcp -j NFQUEUE")
+    fwp = Process(target = FWsubprocess)
+    fwp.start()
+    print('FIREWALL: READY')
 
     group = PairingGroup('SS512')
     absinst = ABS(group)
@@ -102,8 +108,6 @@ try:
     ask,apk = absinst.authoritysetup(tpk)
 
     hugeness = 6000
-
-    accesspolicies = {'www.vtt.fi': '(SKILLFUL AND MOTIVATED) OR ECCENTRIC'}
 
     host,port = 'localhost',0
     server = socketserver.TCPServer((host,port), MyTCPHandler)
