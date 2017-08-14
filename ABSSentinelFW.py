@@ -11,7 +11,6 @@ from charm.toolbox.securerandom import OpenSSLRand
 
 def print_and_accept(pkt):
     a = IP(pkt.get_payload())
-    a.show()
     if a[IP][TCP].dport == 80:
         source,dest = a[IP].src, a[IP].dst
         host = 0
