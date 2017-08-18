@@ -6,6 +6,8 @@ from charm.toolbox.securerandom import OpenSSLRand
 from time import sleep
 import socket
 import sys
+import subprocess
+import os
 
 class MyTCPHandler(socketserver.BaseRequestHandler):
     def handle(self):
@@ -25,7 +27,7 @@ try:
     try:
         host,port,netalias = sys.argv[1],int(sys.argv[2]),sys.argv[3]
     except IndexError:
-        print("Format: ABSClient.py serverhost serverport networkalias attrib1 attrib2 ...")
+        print("Format: ABSClient.py serverhost serverport networkalias")
         exit()
 
     hugeness = 8000
@@ -39,9 +41,19 @@ try:
     myhost,myport = sock.getsockname()
     print('Connected to server')
 
-    attrib = ",".join(sys.argv[4:])
-    sock.sendall(bytes("{},{}".format(netalias,attrib),'utf-8'))
-    print('SENT ATTRIBUTES FOR TEST CASE')
+    outputlist = []
+    location = '{}/.mozilla/firefox/'.format(os.environ['HOME'])
+    for i in os.listdir(location):
+        if i.endswith('.default'):
+            add = os.path.join(location+i,'extensions.json')
+            with open(add) as filex:
+                data = json.load(filex)
+                for i in data['addons']:
+                    if i['active']:
+                        outputlist.append(i['defaultLocale']['name'])
+
+    sock.sendall(bytes("{},{}".format(netalias,",".join(outputlist)),'utf-8'))
+    print('SENT MOZILLA EXTENSIONS FOR TEST CASE')
 
     tpk,apk,ska = json.loads(str(sock.recv(hugeness),'utf-8'))
     tpk = testinst.decodestr(tpk)
@@ -54,6 +66,7 @@ try:
     server = socketserver.TCPServer((myhost,myport), MyTCPHandler)
     print(server.server_address[0],server.server_address[1])
     server.serve_forever()
+
 except KeyboardInterrupt:
     try:
         server.shutdown()

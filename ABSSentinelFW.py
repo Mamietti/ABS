@@ -16,10 +16,6 @@ def print_and_accept(pkt):
         source,dest = a[IP].src, a[IP].dst
         host = 0
         port = 0
-        #print(a[IP].src,a[IP].dst)
-        #print(clientlist)
-        #print(networkalias)
-        #print(checklist)
         try:
             port = clientlist[networkalias[source]]
             host = networkalias[source]
@@ -80,6 +76,7 @@ def checkprotocol(host,port):
         return judgement
     except Exception as err:
         print(err)
+        return False
     sock.close()
 
 
@@ -89,16 +86,27 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
             self.data = self.request.recv(hugeness).strip()
             msg = self.data.decode('utf-8')
             host,port = self.client_address[0],self.client_address[1]
-            print('SERVER: received from {}:{} attributes'.format(host,port),msg)
+            print('SERVER: received from {}:{} list'.format(host,port),msg)
 
             content = msg.split(",")
             netalias = content[0]
-            ska = absinst.generateattributes(ask,content[1:])
+            addons = set(content[1:])
+            print(addons)
+            attributes = []
+
+            if addons == default_addons:
+                attributes.append('DEFAULTSONLY')
+            else:
+                attributes.append('UNKNOWNADDONS')
+                if safety_addons.issubset(addons):
+                    attributes.append('SAFETYADDONSENABLED')
+
+            ska = absinst.generateattributes(ask,attributes)
             striple = (absinst.encodestr(tpk),absinst.encodestr(apk),absinst.encodestr(ska))
-            self.request.sendall(bytes(json.dumps(striple),'utf8'))
             clientlist[host] = port
             networkalias[netalias] = host
-            print('SERVER: keys sent, client {}:{} added to list with netalias {}'.format(host,port, netalias))
+            print('SERVER: keys for {} sent, client {}:{} added to list with netalias {}'.format(attributes,host,port, netalias))
+            self.request.sendall(bytes(json.dumps(striple),'utf8'))
         except Exception as err:
             print('SERVER: MISERABLE FAILURE:',err)
 
@@ -107,14 +115,26 @@ class ThreadedTCPServer(socketserver.ThreadingMixIn,socketserver.TCPServer):
 
 try:
     attributes = [
-        'MOTIVATED',
-        'SKILLFUL',
-        'ECCENTRIC',
-        'LAZY',
-        'VIOLENT'
+        'DEFAULTSONLY',
+        'UNKNOWNADDONS',
+        'SAFETYADDONSENABLED',
     ]
     print('SERVER: ATTRIBUTE TABLE: ',attributes)
-    accesspolicy = '(SKILLFUL AND MOTIVATED) OR ECCENTRIC'
+    accesspolicy = '(UNKNOWNADDONS AND SAFETYADDONSENABLED) OR DEFAULTSONLY'
+
+    default_addons = set([
+    'English (South African) Language Pack',
+    'English (GB) Language Pack',
+    'Application Update Service Helper',
+    'Pocket',
+    'Web Compat',
+    'Site Deployment Checker',
+    'Default',
+    'Ubuntu Modifications',
+    'Multi-process staged rollout',
+    'Disable Prefetch',
+    'Disable TLS Certificate Transparency'])
+    safety_addons = set(['AdBlocker Ultimate'])
 
     valuemanager = Manager()
     iplist = valuemanager.list()
@@ -135,13 +155,11 @@ try:
     hugeness = 8000
 
     host,port = 'localhost',0
-    #server = socketserver.TCPServer((host,port), MyTCPHandler)
     server = ThreadedTCPServer((host,port),MyTCPHandler)
     server_thread = threading.Thread(target=server.serve_forever)
     server_thread.daemon = True
     server_thread.start()
     print('SERVER: READY, port',server.server_address[1])
-    #server.serve_forever()
 
     while True:
         if len(checklist)>0:
@@ -149,7 +167,6 @@ try:
             if checkprotocol(host,port):
                 print('WATCHDOG: APPENDED',ip,'TO IPLIST')
                 iplist.append(ip)
-
 
 except KeyboardInterrupt:
     fwp.join()
