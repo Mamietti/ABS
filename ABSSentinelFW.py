@@ -16,17 +16,20 @@ def print_and_accept(pkt):
         source,dest = a[IP].src, a[IP].dst
         host = 0
         port = 0
+        clientiplist = []
         try:
-            port = clientlist[networkalias[source]]
             host = networkalias[source]
+            port = clientlist[host]
+            clientiplist = iplist[host]
         except Exception:
             try:
-                port = clientlist[networkalias[dest]]
                 host = networkalias[dest]
+                port = clientlist[host]
+                clientiplist = iplist[host]
             except Exception:
                 pkt.accept()
             else:
-                if source in iplist:
+                if source in clientiplist:
                     pkt.accept()
                 else:
                     triple = (host,port,source)
@@ -36,7 +39,7 @@ def print_and_accept(pkt):
                     else:
                         pkt.drop()
         else:
-            if dest in iplist:
+            if dest in clientiplist:
                 pkt.accept()
             else:
                 triple = (host,port,dest)
@@ -91,7 +94,6 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
             content = msg.split(",")
             netalias = content[0]
             addons = set(content[1:])
-            print(addons)
             attributes = []
 
             if addons == default_addons:
@@ -105,7 +107,8 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
             striple = (absinst.encodestr(tpk),absinst.encodestr(apk),absinst.encodestr(ska))
             clientlist[host] = port
             networkalias[netalias] = host
-            print('SERVER: keys for {} sent, client {}:{} added to list with netalias {}'.format(attributes,host,port, netalias))
+            iplist[host] = valuemanager.list()
+            print('SERVER: keys for {} sent, client {}:{} added to lists with netalias {}'.format(attributes,host,port, netalias))
             self.request.sendall(bytes(json.dumps(striple),'utf8'))
         except Exception as err:
             print('SERVER: MISERABLE FAILURE:',err)
@@ -137,7 +140,7 @@ try:
     safety_addons = set(['AdBlocker Ultimate'])
 
     valuemanager = Manager()
-    iplist = valuemanager.list()
+    iplist = valuemanager.dict()
     clientlist = valuemanager.dict()
     networkalias = valuemanager.dict()
     checklist = valuemanager.list()
@@ -165,8 +168,8 @@ try:
         if len(checklist)>0:
             host,port,ip = checklist.pop(0)
             if checkprotocol(host,port):
-                print('WATCHDOG: APPENDED',ip,'TO IPLIST')
-                iplist.append(ip)
+                print('WATCHDOG: ADDED',ip,'TO IPLIST')
+                iplist[host].append(ip)
 
 except KeyboardInterrupt:
     fwp.join()
