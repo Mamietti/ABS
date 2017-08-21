@@ -10,6 +10,9 @@ import subprocess
 import os
 
 class MyTCPHandler(socketserver.BaseRequestHandler):
+    '''
+    Server process that responds to policy enforcement requests
+    '''
     def handle(self):
         try:
             nonce,policy = json.loads(str(self.request.recv(hugeness),'utf-8'))
@@ -42,14 +45,14 @@ try:
     print('Connected to server')
 
     outputlist = []
-    location = '{}/.mozilla/firefox/'.format(os.environ['HOME'])
+    location = '{}/.mozilla/firefox/'.format(os.environ['HOME']) #find my addons
     for i in os.listdir(location):
         if i.endswith('.default'):
             add = os.path.join(location+i,'extensions.json')
             with open(add) as filex:
                 data = json.load(filex)
                 for i in data['addons']:
-                    if i['active']:
+                    if i['active']: #active addons only
                         outputlist.append(i['defaultLocale']['name'])
 
     sock.sendall(bytes("{},{}".format(netalias,",".join(outputlist)),'utf-8'))

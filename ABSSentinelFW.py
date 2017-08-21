@@ -10,48 +10,48 @@ import json
 import threading
 from charm.toolbox.securerandom import OpenSSLRand
 
+def decider_of_fate(host,unknown,pkt):
+    '''
+    Checks whether the packet info has been previously approved and adds to
+    checklist if not
+    '''
+    port = clientlist[host]
+    clientiplist = iplist[host]
+    if unknown in clientiplist:
+        pkt.accept()
+    else:
+        triple = (host,port,unknown)
+        if triple not in checklist:
+            print('FIREWALL: unknown source/destination',unknown)
+            checklist.append(triple)
+        else:
+            pkt.drop()
+
 def print_and_accept(pkt):
+    '''
+    Firewall packet decider framework
+
+    Lets uninteresting (non-HTTP, not marked to any client) packets through
+    '''
     a = IP(pkt.get_payload())
     if a[IP][TCP].dport == 80:
         source,dest = a[IP].src, a[IP].dst
         host = 0
-        port = 0
-        clientiplist = []
         try:
-            host = networkalias[source]
-            port = clientlist[host]
-            clientiplist = iplist[host]
-        except Exception:
+            decider_of_fate(networkalias[source],dest,pkt)
+        except KeyError:
             try:
-                host = networkalias[dest]
-                port = clientlist[host]
-                clientiplist = iplist[host]
-            except Exception:
+                decider_of_fate(networkalias[dest],source,pkt)
+            except KeyError:
                 pkt.accept()
-            else:
-                if source in clientiplist:
-                    pkt.accept()
-                else:
-                    triple = (host,port,source)
-                    if triple not in checklist:
-                        print('FIREWALL: unknown source',source)
-                        checklist.append(triple)
-                    else:
-                        pkt.drop()
-        else:
-            if dest in clientiplist:
-                pkt.accept()
-            else:
-                triple = (host,port,dest)
-                if triple not in checklist:
-                    print('FIREWALL: unknown destination',dest)
-                    checklist.append(triple)
-                else:
-                    pkt.drop()
     else:
         pkt.accept()
 
+
 def FWsubprocess():
+    '''
+    Almost dummy subprocess for the firewall binding
+    '''
     try:
         nfqueue = NetfilterQueue()
         nfqueue.bind(0,print_and_accept)
@@ -59,31 +59,12 @@ def FWsubprocess():
     except KeyboardInterrupt:
         nfqueue.unbind()
 
-def checkprotocol(host,port):
-    try:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.connect((host,int(port)))
-        print('WATCHDOG: Connected to client {}:{}'.format(host,port))
-        nonce = str(OpenSSLRand().getRandomBytes(20))[2:].replace("\\x","")
-        stuple = (nonce,accesspolicy)
-        sock.sendall(bytes(json.dumps(stuple),'utf8'))
-        print('WATCHDOG: Sent nonce {} and policy {}'.format(nonce,accesspolicy))
-
-        data = sock.recv(hugeness).strip()
-        msg = data.decode('utf-8')
-        signature = absinst.decodestr(msg)
-        judgement = absinst.verify((tpk,apk),signature,nonce,accesspolicy)
-
-        sock.sendall(bytes(str(judgement),'utf-8'))
-        print('WATCHDOG: Sent judgement', judgement)
-        return judgement
-    except Exception as err:
-        print(err)
-        return False
-    sock.close()
-
 
 class MyTCPHandler(socketserver.BaseRequestHandler):
+    '''
+    Key request service that decides the client's attributes based on the
+    predefined "default" and "secure" addon lists
+    '''
     def handle(self):
         try:
             self.data = self.request.recv(hugeness).strip()
@@ -116,7 +97,36 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 class ThreadedTCPServer(socketserver.ThreadingMixIn,socketserver.TCPServer):
     pass
 
+def checkprotocol(host,port):
+    '''
+    "Watchdog" runs every time there's an unknown in the list
+
+    This is what enforces the policy
+    '''
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect((host,int(port)))
+        print('WATCHDOG: Connected to client {}:{}'.format(host,port))
+        nonce = str(OpenSSLRand().getRandomBytes(20))[2:].replace("\\x","")
+        stuple = (nonce,accesspolicy)
+        sock.sendall(bytes(json.dumps(stuple),'utf8'))
+        print('WATCHDOG: Sent nonce {} and policy {}'.format(nonce,accesspolicy))
+
+        data = sock.recv(hugeness).strip()
+        msg = data.decode('utf-8')
+        signature = absinst.decodestr(msg)
+        judgement = absinst.verify((tpk,apk),signature,nonce,accesspolicy)
+
+        sock.sendall(bytes(str(judgement),'utf-8'))
+        print('WATCHDOG: Sent judgement', judgement)
+        return judgement
+    except Exception as err:
+        print(err)
+        return False
+    sock.close()
+
 try:
+    # HOX! run 'sudo iptables -A OUTPUT -p tcp -j NFQUEUE' before using
     attributes = [
         'DEFAULTSONLY',
         'UNKNOWNADDONS',
@@ -150,7 +160,6 @@ try:
     tpk = absinst.trusteesetup(attributes)
     ask,apk = absinst.authoritysetup(tpk)
 
-    #os.system("sudo iptables -A OUTPUT -p tcp -j NFQUEUE")
     fwp = Process(target = FWsubprocess)
     fwp.start()
     print('FIREWALL: READY')
