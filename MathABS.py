@@ -58,7 +58,7 @@ class ABS:
         ask['atr'] = tpk['atr'] #this is for ease of usage
 
         apk['A0'] = tpk['h0'] ** a0
-        for i in range(1,tmax+1):#rest of the whateverifys
+        for i in range(1,tmax+1): #rest of the whateverifys
             apk['A{}'.format(i)] = tpk['h{}'.format(i)] ** a
 
         for i in range(1,tmax+1):
@@ -74,7 +74,7 @@ class ABS:
         '''
         ska = {}
 
-        Kbase = self.group.random(G1) # "random generator" within G
+        Kbase = self.group.random(G1) #"random generator" within G
         ska['Kbase'] = Kbase
 
         ska['K0'] = Kbase ** (1/ask['a0'])
@@ -151,7 +151,6 @@ class ABS:
                     else:
                         if multi != (after):
                             sentence = False
-                    #print(j,sentence, multi, pre * after, after)
                 except Exception as err:
                     print(err)
             return sentence
@@ -165,7 +164,6 @@ class ABS:
 
         target vector (1,0,....,0)
         '''
-        policylist = [] #list of all attributes, we need this for handiness
         u = {}
         counter = 0
         for i in attributes:
@@ -227,7 +225,7 @@ class ABS:
 
     def decodestr(self, stri):
         '''
-        string -> pairing group array
+        string -> pairing group dict
         for receiving
         '''
         dicti = json.loads(stri)
@@ -239,7 +237,6 @@ class ABS:
         return dicti
 
 if __name__ == "__main__":
-
     group = PairingGroup('MNT159')
     attributes = ['SKILLFUL','ECCENTRIC','LAZY','VIOLENT']
     print('ATTRIBUTE TABLE: ',attributes)

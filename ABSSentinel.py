@@ -9,6 +9,7 @@ import socket
 import json
 import threading
 from charm.toolbox.securerandom import OpenSSLRand
+from ABSSetup import safety_addons_list, default_addons_list
 
 def decider_of_fate(host,unknown,pkt):
     '''
@@ -126,34 +127,28 @@ def checkprotocol(host,port):
     sock.close()
 
 try:
-    # HOX! run 'sudo iptables -A OUTPUT -p tcp -j NFQUEUE' before using
     attributes = [
         'DEFAULTSONLY',
         'UNKNOWNADDONS',
         'SAFETYADDONSENABLED',
     ]
-    print('SERVER: ATTRIBUTE TABLE: ',attributes)
     accesspolicy = '(UNKNOWNADDONS AND SAFETYADDONSENABLED) OR DEFAULTSONLY'
-
-    default_addons = set([
-    'English (South African) Language Pack',
-    'English (GB) Language Pack',
-    'Application Update Service Helper',
-    'Pocket',
-    'Web Compat',
-    'Site Deployment Checker',
-    'Default',
-    'Ubuntu Modifications',
-    'Multi-process staged rollout',
-    'Disable Prefetch',
-    'Disable TLS Certificate Transparency'])
-    safety_addons = set(['AdBlocker Ultimate'])
 
     valuemanager = Manager()
     iplist = valuemanager.dict()
     clientlist = valuemanager.dict()
     networkalias = valuemanager.dict()
     checklist = valuemanager.list()
+
+    print('\nDEFAULT ADDONS:')
+    for i in default_addons_list:
+        print('\t',i)
+    print('\n\'SAFE\' ADDONS:')
+    for i in safety_addons_list:
+        print('\t',i)
+
+    default_addons = set(default_addons_list)
+    safety_addons = set(safety_addons_list)
 
     group = PairingGroup('SS512')
     absinst = ABS(group)
@@ -162,7 +157,7 @@ try:
 
     fwp = Process(target = FWsubprocess)
     fwp.start()
-    print('FIREWALL: READY')
+    print('\nFIREWALL: READY')
 
     hugeness = 8000
 
