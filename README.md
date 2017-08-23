@@ -2,12 +2,12 @@
 
 Non-intrusive access monitoring scenario using attribute based signatures.
 
-##Requirements
+## Requirements
 
 * **Python 3.6** (verified to work) or possibly newer (untested) with the included base libraries
 * Libraries **charm-crypto**, **netfilterqueue** and **scapy** and their respective requirements
 
-##Usage
+## Usage
 
 1. Run `$ sudo iptables -A OUTPUT -p tcp -j NFQUEUE` to send packets to the NFQUEUE handler.
 2. Start the server process via `$ sudo python3.6 ABSSentinel.py` which gives you the port number (host is the IP of the machine running it).
