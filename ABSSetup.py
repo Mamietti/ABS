@@ -1,3 +1,6 @@
+'''
+This is the list of default addons which we consider the absolute basics
+'''
 default_addons_list = [
 'English (South African) Language Pack',
 'English (GB) Language Pack',
@@ -9,8 +12,12 @@ default_addons_list = [
 'Ubuntu Modifications',
 'Multi-process staged rollout',
 'Disable Prefetch',
-'Disable TLS Certificate Transparency']
+'Disable TLS Certificate Transparency'
+]
 
+'''
+These are the addons we want the user to have if they're not going with the basics
+'''
 safety_addons_list = [
 'AdBlocker Ultimate'
 ]

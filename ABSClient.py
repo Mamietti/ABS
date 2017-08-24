@@ -11,7 +11,7 @@ import os
 
 class MyTCPHandler(socketserver.BaseRequestHandler):
     '''
-    Server process that responds to policy enforcement requests
+    "Server" process that responds to policy enforcement requests
     '''
     def handle(self):
         try:
