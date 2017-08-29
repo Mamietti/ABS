@@ -167,7 +167,6 @@ class ABS:
         u = {}
         counter = 0
         for i in attributes:
-            policylist.append(i)
             u[counter] = i
             u[i] = counter
             counter += 1
