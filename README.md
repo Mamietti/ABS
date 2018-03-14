@@ -9,9 +9,10 @@ Non-intrusive access monitoring scenario using attribute based signatures.
 
 ## Usage
 
-1. Run `$ sudo iptables -A OUTPUT -p tcp -j NFQUEUE` to send packets to the NFQUEUE handler.
-2. Start the server process via `$ sudo python3.6 ABSSentinel.py` which gives you the port number (host is the IP of the machine running it).
-3. Start the client process as `$ sudo python3.6 ABSClient.py serverhost serverport networkalias` where:
+1. Configure addons by editing ABSSetup.py (JSON support may come later)
+2. Run `$ sudo iptables -A OUTPUT -p tcp -j NFQUEUE` to send packets to the NFQUEUE handler.
+3. Start the server process via `$ sudo python3.6 ABSSentinel.py` which gives you the port number (host is the IP of the machine running it).
+4. Start the client process as `$ sudo python3.6 ABSClient.py serverhost serverport networkalias` where:
 * `serverhost` and `serverport` are self-explanatory.
 * `networkalias` is the IP address representing the client in the packets sent to/from the client. This is for enabling NAT support.
-4. When finished, stop the processes via Ctrl-C and run `$ sudo iptables -D OUTPUT -p tcp -j NFQUEUE` to stop the packet handler
+5. When finished, stop the processes via Ctrl-C and run `$ sudo iptables -D OUTPUT -p tcp -j NFQUEUE` to stop the packet handler
